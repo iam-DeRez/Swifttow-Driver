@@ -3,12 +3,13 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
+
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:flutter_svg/svg.dart';
-import 'package:geocoding/geocoding.dart';
+
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:swifttowdriver/Helpers/push_notification.dart';
 
 import '../modules/colors.dart';
@@ -57,6 +58,15 @@ class MapScreenState extends State<MapScreen> {
     mapController!
         .animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
 
+    //Database initiation
+    final user = FirebaseAuth.instance.currentUser!;
+    DatabaseReference driversLocation =
+        FirebaseDatabase.instance.ref().child('drivers/${user.uid}/Location');
+    await driversLocation.child(user.uid).set({
+      'Latitude': latlngPosition!.latitude,
+      'Longitude': latlngPosition!.longitude,
+    });
+
     // List<Placemark> placemarks =
     //     await placemarkFromCoordinates(position.latitude, position.longitude);
     // String locality = placemarks[0].locality!;
@@ -71,11 +81,13 @@ class MapScreenState extends State<MapScreen> {
     Geofire.initialize('driversAvailable');
     if (_isClicked) {}
 
-    tripRequestRef =
-        FirebaseDatabase.instance.ref().child("drivers/${user.uid}/newtrip");
+    tripRequestRef = FirebaseDatabase.instance
+        .ref()
+        .child("drivers/${user.uid}/newTowRequest");
     tripRequestRef!.set('waiting');
 
     tripRequestRef!.onValue.listen((event) {});
+    getCurrentDriverDetailsForNotification();
   }
 
 // Driver go offline
@@ -107,6 +119,7 @@ class MapScreenState extends State<MapScreen> {
   void getCurrentDriverDetailsForNotification() {
     PushNotification pushNotification = PushNotification();
 
+    pushNotification.initialize(context);
     pushNotification.getToken();
   }
 
@@ -118,7 +131,7 @@ class MapScreenState extends State<MapScreen> {
   void initState() {
     // TODO: implement initState
     locatePosition();
-    getCurrentDriverDetailsForNotification();
+
     super.initState();
   }
 
